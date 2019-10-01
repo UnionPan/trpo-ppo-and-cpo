@@ -1,7 +1,9 @@
 import torch
 
 
-def conjugate_gradients(Avp, b, nsteps, residual_tol=1e-10):
+def conjugate_gradient(Avp, b, nsteps, residual_tol=1e-10):
+    "do conjugate gradient to find an approximated v such that A v = b"
+
     x = torch.zeros(b.size())
     r = b - Avp(x)
     p = r
@@ -20,14 +22,36 @@ def conjugate_gradients(Avp, b, nsteps, residual_tol=1e-10):
             break
     return x
 
+def line_search(policy_net, get_loss, full_step, grad, max_num_backtrack=10, accept_ratio=0.1):
+    """
+    do backtracking line search
+    ref: https://en.wikipedia.org/wiki/Backtracking_line_search
 
-def flat_grad_from(net, grad_grad=False):
-    grads = []
-    for param in net.parameters():
-        if grad_grad:
-            grads.append(param.grad.grad.view(-1))
-        else:
-            grads.append(param.grad.view(-1))
+    :param policy_net: policy net used to get initial params and set params before get_loss
+    :param get_loss: get loss evaluation
+    :param full_step: maximum stepsize, numpy.ndarray
+    :param grad: initial gradient i.e. nabla f(x) in wiki
+    :param max_num_backtrack: maximum iterations of backtracking
+    :param accept_ratio: i.e. param c in wiki
+    :return: a tuple (whether accepted at last, found optimal x)
+    """
+    # initial point
+    x0 = policy_net.get_flat_params()
+    # initial loss
+    f0 = get_loss(None)
+    # step fraction
+    alpha = 1.0
+    # expected maximum improvement, i.e. cm in wiki
+    expected_improve = accept_ratio * (- torch.Tensor(full_step) * grad).sum(0, keepdim=True)
 
-    flat_grad = torch.cat(grads)
-    return flat_grad
+    for count in range(max_num_backtrack):
+        xnew = x0 + alpha * full_step
+        policy_net.set_flat_params(xnew)
+        fnew = get_loss(None)
+        actual_improve = f0 - fnew
+        if actual_improve > 0 and actual_improve > alpha * expected_improve:
+            return True, xnew
+        alpha *= 0.5
+    return False, x0
+
+
