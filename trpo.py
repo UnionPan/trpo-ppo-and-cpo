@@ -27,12 +27,13 @@ from optimizer import conjugate_gradient, line_search
 from utils import *
 from running_state import *
 
- 
+if not os.path.exists('./result'):
+    os.mkdir('./result')
+    
+Transition = namedtuple('Transition', ('state', 'action', 'mask', 'next_state', 'reward'))
 EPS = 1e-10
-RESULT_DIR = './result'
-if os.path.exists(RESULT_DIR):
-    pass
-else:
+RESULT_DIR = joindir('./result', '.'.join(__file__.split('.')[:-1]))
+if not os.path.exists(RESULT_DIR):
     os.makedirs(RESULT_DIR)
 
     
@@ -253,7 +254,7 @@ if __name__ == "__main__":
         plt.fill_between(record_dfs['steps'], record_dfs['reward_mean'] - record_dfs['reward_std'], 
         record_dfs['reward_mean'] + record_dfs['reward_std'], color='b', alpha=0.2)
         plt.legend()
-        plt.xlabel('steps of env interaction (sample complexity)')
+        plt.xlabel('global steps')
         plt.ylabel('average reward')
         plt.title('TRPO on {}'.format(args.env_name))
         plt.savefig(joindir(RESULT_DIR, 'trpo-{}-{}.pdf'.format(args.env_name, datestr))) 

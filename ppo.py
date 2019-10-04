@@ -1,3 +1,6 @@
+'''
+Schulman, John, et al. "Proximal policy optimization algorithms." arXiv preprint arXiv:1707.06347 (2017).
+'''
 import gym
 import torch
 import torch.nn as nn
@@ -25,6 +28,8 @@ from running_state import *
 
 
 Transition = namedtuple('Transition', ('state', 'value', 'action', 'logproba', 'mask', 'next_state', 'reward'))
+if not os.path.exists('./result'):
+    os.mkdir('./result')
 EPS = 1e-10
 RESULT_DIR = joindir('./result', '.'.join(__file__.split('.')[:-1]))
 benchmarks = ['Walker2d-v2', 'Swimmer-v2', 'Hopper-v2', 'Humanoid-v2', 'HalfCheetah-v2', 'Reacher-v2']
@@ -284,6 +289,7 @@ class PPO:
     
     def test_benchmarks(self):
         "test for different benchmark environment tasks in asynchronous parallels:"
+
         datestr = datetime.datetime.now().strftime('%Y-%m-%d')
 
         record_dfs = pd.DataFrame(columns=['steps', 'reward'])
@@ -310,7 +316,8 @@ class PPO:
 
 
     def plot_figure(self, datestamp, record_dfs, reward_cols):
-            
+        "ploting figure using pandas"
+
         record_dfs = record_dfs.drop(columns='reward').sort_values(by='steps', ascending=True).ffill().bfill()
         record_dfs['reward_mean'] = record_dfs[reward_cols].mean(axis=1)
         record_dfs['reward_std'] = record_dfs[reward_cols].std(axis=1)
@@ -331,6 +338,8 @@ class PPO:
 
 
     def render_test(self, env):
+        "testing a specific environment using current loaded policy"
+
         args.env_name = env
         self.__init__(args)
         self.network.load_state_dict(torch.load('./saved_model/ppo_ac_{}_{}'.format(env, 2)))
@@ -351,8 +360,9 @@ class PPO:
 
     
 if __name__ == "__main__":
+
     args = add_arguments()
     ppo_algo = PPO(args)
     #ppo_algo.ppo_step(0)
-    #ppo_algo.test_benchmarks()
+    ppo_algo.test_benchmarks()
     ppo_algo.render_test('Humanoid-v2')
